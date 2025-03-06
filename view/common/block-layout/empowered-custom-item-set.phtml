@@ -1,0 +1,26 @@
+<?php
+$translate = $this->plugin('translate');
+$searchAction = $this->url('site/resource', ['controller' => 'item', 'action' => 'browse'], true);
+$searchValue = $this->escapeHtml((isset($_GET['property'][0]['text'])) ? $_GET['property'][0]['text'] : "");
+$itemSetId = isset($this->itemSetId) ? $this->escapeHtml($this->itemSetId) : ''; // Assigned in admin panel
+$propertyId = isset($this->propertyId) ? $this->escapeHtml($this->propertyId) : ''; // Assigned in admin panel
+?>
+
+<div class="search_form">
+    <form action="<?php echo $this->escapeHtml($searchAction); ?>" id="search-form" method="GET">
+        
+        <!-- Hidden input for the assigned item set ID -->
+        <input type="hidden" name="item_set_id" value="<?php echo $itemSetId; ?>">
+
+        <!-- Hidden input for the selected property ID -->
+        <input type="hidden" name="property[0][property]" value="<?php echo $propertyId; ?>" />
+        <input type="hidden" name="property[0][type]" value="in" /> <!-- 'in' for 'Contains' search -->
+
+        <!-- Text field for search within the specified property -->
+        <input type="text" name="property[0][text]" value="<?php echo $searchValue; ?>"
+            placeholder="<?php echo $translate($this->placeHolder_01); ?>"
+            aria-label="<?php echo $translate($this->placeHolder_01); ?>">
+        
+        <button type="submit"><?php echo $translate('Search'); ?></button> 
+    </form>
+</div>

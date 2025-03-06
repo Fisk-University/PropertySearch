@@ -1,0 +1,98 @@
+<?php
+$translate = $this->plugin('translate');
+$searchType = $this->siteSetting('search_type', 'sitewide');
+$properties = isset($_GET['property']) ? $_GET['property'] : [];
+$properties = array_filter($properties, function ($value) {
+    return isset($value['text']) ? '' !== trim($value['text']) : true;
+});
+if (!$properties) {
+    $properties[] = [];
+}
+$searchAction = $this->url('site/resource', ['controller' => 'item', 'action' => 'browse'], true);
+$searchValue = $this->escapeHtml((isset($properties[0]['text'])) ? $properties[0]['text'] : "");
+$itemSetID = $this->escapeHtml($this->params()->fromQuery('item_set_id'));
+$searchTextOne  = $this->escapeHtml((isset($properties[0]['text'])) ? $properties[0]['text'] : "");
+$searchTextTwo  = $this->escapeHtml((isset($properties[1]['text'])) ? $properties[1]['text'] : "");
+$spatialOptions = $this->api()->search('item_sets', ['sort_by' => 'title'])->getContent();
+$propertyTitles = $this->api()->search('properties')->getContent();
+$propertySearchAdditionalField01 = (isset($this->searchField_01)) ? $this->searchField_01 : 'dcterms:title';
+$propertySearchAdditionalField02 = (isset($this->searchField_02)) ? $this->searchField_02 : 'dcterms:title';
+$counties = isset($this->counties) ? $this->counties : [];
+$states = isset($this->states) ? $this->states : [];
+$stateCountyPairs = isset($this->stateCountyPairs) ? $this->stateCountyPairs : [];
+$statePropertyId = isset($this->statePropertyId) ? $this->statePropertyId : ''; // Ensure this is the actual ID for "State"
+$countyPropertyId = isset($this->countyPropertyId) ? $this->countyPropertyId : ''; // Ensure this is the actual ID for "County"
+?>
+
+<div class="search_form">
+    <form action="<?php echo $this->escapeHtml($searchAction); ?>" id="search-form" method="GET">
+        
+        <!-- Dropdown for Unique State Values -->
+        <select name="property[0][text]" id="state-select">
+            <option value="">-- Select a State --</option>
+            <?php foreach ($states as $state): ?>
+                <option value="<?php echo htmlspecialchars($state); ?>">
+                    <?php echo htmlspecialchars($state); ?>
+                </option>
+            <?php endforeach; ?>
+        </select>
+
+        <!-- Dropdown for County (initially empty) -->
+        <select name="property[1][text]" id="county-select">
+            <option value="">-- Select a County --</option>
+        </select>
+
+        <!-- Hidden inputs for State and County properties -->
+        <input type="hidden" name="property[0][property]" value="<?php echo htmlspecialchars($statePropertyId); ?>" />
+        <input type="hidden" name="property[0][type]" value="eq" />
+        <input type="hidden" name="property[0][text]" id="hidden-state-value" />
+
+        <input type="hidden" name="property[1][property]" value="<?php echo htmlspecialchars($countyPropertyId); ?>" />
+        <input type="hidden" name="property[1][type]" value="eq" />
+        <input type="hidden" name="property[1][text]" id="hidden-county-value" />
+
+        <button type="submit"><?php echo $translate('Search'); ?></button> 
+    </form>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const stateSelect = document.getElementById("state-select");
+    const countySelect = document.getElementById("county-select");
+    const hiddenStateValue = document.getElementById("hidden-state-value");
+    const hiddenCountyValue = document.getElementById("hidden-county-value");
+
+    // Store all state-county pairs in JavaScript
+    const stateCountyPairs = <?php echo json_encode($stateCountyPairs); ?>;
+
+    stateSelect.addEventListener("change", function() {
+        const selectedState = stateSelect.value;
+        hiddenStateValue.value = selectedState; // Set the hidden state value for search
+
+        // Clear the county dropdown
+        countySelect.innerHTML = '<option value="">-- Select a County --</option>';
+
+        if (selectedState) {
+            // Filter counties for the selected state
+            const filteredCounties = stateCountyPairs
+                .filter(pair => pair.state === selectedState)
+                .map(pair => pair.county);
+
+            // Remove duplicate counties
+            const uniqueCounties = [...new Set(filteredCounties)];
+
+            // Populate county dropdown with filtered counties
+            uniqueCounties.forEach(county => {
+                const option = document.createElement("option");
+                option.value = county;
+                option.textContent = county;
+                countySelect.appendChild(option);
+            });
+        }
+    });
+
+    countySelect.addEventListener("change", function() {
+        hiddenCountyValue.value = countySelect.value; // Set the hidden county value for search
+    });
+});
+</script>
